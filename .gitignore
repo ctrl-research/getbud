@@ -56,8 +56,7 @@ venv/
 *.dll
 *.so
 *.dylib
-/free-games-test
-/free-games
+/bin/
 
 # Misc
 *.tmp

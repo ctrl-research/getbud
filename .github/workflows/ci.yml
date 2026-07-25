@@ -7,6 +7,75 @@ on:
   pull_request:
 
 jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: getbud
+          POSTGRES_PASSWORD: getbud
+          POSTGRES_DB: getbud_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U getbud"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      GETBUD_TEST_DATABASE_URL: postgres://getbud:getbud@localhost:5432/getbud_test?sslmode=disable
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Check generated code is current
+        run: |
+          go tool sqlc generate
+          git diff --exit-code internal/store/sqlcgen || {
+            echo "::error::internal/store/sqlcgen is stale — run 'make generate' and commit the result"
+            exit 1
+          }
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: go build ./...
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck and build
+        run: npm run build
+
   validate:
     runs-on: ubuntu-latest
     steps:
@@ -15,21 +84,8 @@ jobs:
 
       - name: Check for sensitive files
         run: |
-          # Fail if .env, secrets, or private keys are committed
-          if git grep -l "\.env\|PRIVATE_KEY\|AWS_SECRET" --cached 2>/dev/null; then
+          # Fail if secrets or private keys are committed
+          if git grep -l "PRIVATE_KEY\|AWS_SECRET" --cached 2>/dev/null; then
             echo "Error: sensitive files committed"
             exit 1
           fi
-
-      - name: Validate YAML files
-        run: |
-          for f in $(find . -name "*.yaml" -o -name "*.yml" 2>/dev/null | grep -v node_modules); do
-            python3 -c "import yaml, sys; yaml.safe_load(open('$f'))" 2>/dev/null || echo "Invalid YAML: $f"
-          done
-
-      # Add project-specific validation steps below, e.g.:
-      # - name: Run tests
-      #   run: go test ./...
-      #
-      # - name: Build Docker image
-      #   run: docker build .

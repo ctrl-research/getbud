@@ -12,8 +12,10 @@
   "enabledManagers": [
     "asdf",
     "docker-compose",
+    "dockerfile",
     "github-actions",
-    "gomod"
+    "gomod",
+    "npm"
   ],
   "packageRules": [
     {
@@ -79,6 +81,22 @@
       "semanticCommitScope": "deps",
       "addLabels": [
         "go"
+      ]
+    },
+    {
+      "matchDatasources": [
+        "npm"
+      ],
+      "commitMessageTopic": "npm package {{depName}}",
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "semanticCommitType": "chore",
+      "semanticCommitScope": "web",
+      "addLabels": [
+        "web"
       ]
     },
     {

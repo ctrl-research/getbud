@@ -1,39 +1,54 @@
-# CLAUDE.md
+# AGENTS.md
 
 ## Purpose
 
-GitHub template repository for bootstrapping `ctrl-research` projects. Provides Renovate-managed dependency updates, branch protection, CODEOWNERS, license, and standard `.gitignore` as a starting point — not a runnable application.
+getbud is a self-hosted budgeting app: Go API + Postgres backend with an
+embedded React SPA. Canadian-focused — registered accounts (RRSP/TFSA/FHSA),
+contribution-room tracking, Sankey/trend/net-worth reports, CSV import.
+The architecture deliberately mirrors `ctrl-research/waypoint`.
 
 ## Tech stack
 
-- **Renovate** for dependency updates (managers: `docker-compose`, `github-actions`, `gomod`)
-- **GitHub Actions** for the Renovate workflow
-- **MIT License**
+- **Go** (std-lib `net/http` ServeMux — no router framework), **pgx/v5**,
+  **sqlc** (generated code in `internal/store/sqlcgen`, never hand-edited),
+  **goose** migrations (embedded, run at server startup)
+- **Postgres 16**
+- **React 19 + TypeScript + Vite + Tailwind v4 + TanStack Router/Query**,
+  charts via **Apache ECharts** (`echarts/core`, tree-shaken)
+- **Docker** 3-stage build; SPA embedded via `go build -tags embedwebui`
 
-## Structure
+## Key commands
 
+```sh
+make db        # postgres via docker compose (host port 5433)
+make seed      # create/reset dev@getbud.local / getbud-dev
+make run       # API on :8081 with GETBUD_LOCAL_AUTH=true
+make web       # vite dev server on :5173 (proxies /api, /auth)
+make generate  # sqlc generate — run after editing internal/store/queries/*.sql
+make test      # go vet + unit tests
+make test-db   # + postgres-backed store tests (requires make db)
+make build     # production binary with embedded UI -> bin/getbud
 ```
-.
-├── .agents/                  # Agent instructions and skills
-├── .github/
-│   ├── CODEOWNERS            # @ctrl-research/reviewers
-│   ├── renovate-config.js    # Renovate platform config
-│   └── workflows/
-│       └── renovate.yaml     # Renovate workflow
-├── .tool-versions            # Pinned language/tool versions (asdf/mise)
-├── AGENTS.md                 # Operational expectations for humans and AI agents
-├── CONTRIBUTING.md
-├── LICENSE
-├── README.md
-├── SECURITY.md
-└── renovate.json             # Renovate settings
-```
+
+Local ports are shifted (+1) to coexist with waypoint on the same machine:
+postgres 5433, app 8081.
 
 ## Conventions
 
-- `.tool-versions` is the single source of truth for language and tool versions. Before building, testing, or running any tooling, check it and use the pinned versions (install via `asdf install` or `mise install`). When adding a new language or tool to the project, pin its version there first — never assume a globally installed version.
-- Versioning: project artifacts (releases, tags, packages, images) follow [SemVer](https://semver.org/) as bare `X.Y.Z` — no `v` prefix (`1.4.2`, not `v1.4.2`). Bump MAJOR for breaking changes, MINOR for backwards-compatible features, PATCH for fixes.
-- See `AGENTS.md` for full agent workflow, code style, testing, and git/PR guidance.
-- Branch protection: never push directly to `main`; all changes via PR with review.
-- When adapting this template for a new project, update `renovate.json` managers/schedules and enable the repo in the Renovate GitHub App.
-- Project-specific `CLAUDE.md` / `AGENTS.md` content should be filled in once the actual stack is added (`src/`, `tests/`, build commands, etc. are placeholders in `AGENTS.md`, not present here).
+- **Money is integer cents (`bigint`) everywhere.** Never floats. Sign
+  convention: `amount_cents > 0` = inflow, `< 0` = outflow.
+- **Every domain table and every query is scoped by `user_id`** — user data
+  is fully private. New store methods must take and filter on the user id;
+  add a cross-user isolation test when adding a store.
+- Transfers are two transaction rows sharing a `transfer_group_id`; all
+  income/expense aggregates exclude rows where it is set.
+- Reverting a CSV import deletes the `import_batches` row; the FK cascade
+  removes its transactions. No other code path deletes batches.
+- Aggregation happens in SQL (`internal/store/queries/reports.sql`), not in
+  Go or the browser.
+- `.tool-versions` pins Go/Node versions (asdf/mise).
+- Store tests use `internal/store/storetest` against real Postgres (no DB
+  mocks); they skip unless `GETBUD_TEST_DATABASE_URL` is set.
+- Migrations are append-only `NNNNN_description.sql` goose files.
+- Versioning: SemVer, bare `X.Y.Z` (no `v` prefix).
+- Branch protection: all changes via PR with review; never push to `main`.

@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      # 8081 on the host to avoid clashing with other local apps on :8080
+      - "8081:8080"
+    environment:
+      GETBUD_ADDR: ":8080"
+      GETBUD_DATABASE_URL: postgres://getbud:${POSTGRES_PASSWORD:-getbud}@postgres:5432/getbud?sslmode=disable
+      GETBUD_LOCAL_AUTH: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: getbud
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-getbud}
+      POSTGRES_DB: getbud
+    ports:
+      # 5433 on the host to avoid clashing with other local postgres instances
+      - "5433:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U getbud"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
