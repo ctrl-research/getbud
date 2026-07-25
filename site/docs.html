@@ -33,6 +33,7 @@
       <a href="#contribution-room">Contribution room</a>
       <a href="#reports">Reports</a>
       <h4>Operations</h4>
+      <a href="#releases">Releases &amp; images</a>
       <a href="#backups">Data &amp; backups</a>
       <a href="#development">Development</a>
     </aside>
@@ -51,9 +52,12 @@ cd getbud
 cp .env.example .env      # set POSTGRES_PASSWORD at minimum
 docker compose up -d</code></pre>
       <p>The app listens on <code>:8081</code> (the container listens on 8080; compose maps it
-        to host 8081). Database migrations run automatically at startup. The <strong>first
-        account to sign in becomes admin</strong> and every new user starts with a sensible set
-        of income and expense categories.</p>
+        to host 8081). Prebuilt multi-arch images (amd64/arm64) are on GHCR if you'd rather
+        point your own deployment at them:</p>
+      <pre><code>docker pull ghcr.io/ctrl-research/getbud:latest   # or a specific X.Y.Z</code></pre>
+      <p>Database migrations run automatically at startup. The <strong>first account to sign
+        in becomes admin</strong> and every new user starts with a sensible set of income and
+        expense categories.</p>
       <p>The compose file enables local email/password auth for a quick first look — create a
         user with:</p>
       <pre><code>docker compose exec app getbud seed    # dev@getbud.local / getbud-dev</code></pre>
@@ -165,6 +169,14 @@ docker compose up -d</code></pre>
       <p>All reports honour the shared date-range picker (this month, last month, year to
         date, last 12 months, or custom) and always exclude transfers. Reports assume a single
         currency; mixed-currency data is not converted.</p>
+
+      <h2 id="releases">Releases &amp; images</h2>
+      <p>Every merge to <code>main</code> bumps the patch version, tags the repo, and publishes
+        a multi-arch image (amd64/arm64) to <code>ghcr.io/ctrl-research/getbud</code> as
+        <code>X.Y.Z</code> and <code>latest</code> (<code>[minor]</code>/<code>[major]</code>
+        in the PR title bump higher). Curated GitHub Releases with notes — optionally with an
+        extra image tag like <code>stable</code> — are cut from the Release workflow in the
+        Actions tab. The running version is logged at startup.</p>
 
       <h2 id="backups">Data &amp; backups</h2>
       <p>All state lives in the <strong>Postgres database</strong> — accounts, transactions,

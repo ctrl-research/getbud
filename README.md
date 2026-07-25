@@ -35,6 +35,13 @@ cp .env.example .env    # set POSTGRES_PASSWORD (and auth vars for SSO)
 docker compose up -d
 ```
 
+Prebuilt multi-arch images (amd64/arm64) are published on every release if
+you'd rather not build from source:
+
+```sh
+docker pull ghcr.io/ctrl-research/getbud:latest   # or a specific X.Y.Z
+```
+
 The app listens on http://localhost:8081. With `GETBUD_LOCAL_AUTH=true`
 (compose default) create a login user:
 

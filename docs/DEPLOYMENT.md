@@ -1,9 +1,16 @@
 # Deployment
 
 getbud is a single container (Go binary with the web UI embedded) plus
-PostgreSQL. State lives entirely in the database — a `pg_dump` is a
-complete backup. Migrations run automatically at startup, so upgrades are
-just a new image.
+PostgreSQL. Multi-arch images (linux/amd64, linux/arm64) are published on
+every release:
+
+```
+ghcr.io/ctrl-research/getbud:X.Y.Z   # or :latest
+```
+
+State lives entirely in the database — a `pg_dump` is a complete backup.
+Migrations run automatically at startup, so upgrades are just a new image
+tag.
 
 See [CONFIGURATION.md](CONFIGURATION.md) for every environment variable.
 
@@ -31,6 +38,23 @@ For a real deployment, set in `.env`:
 - Google or OIDC credentials (see CONFIGURATION.md);
 - `GETBUD_ALLOWED_EMAILS` — who may sign up after you;
 - and disable `GETBUD_LOCAL_AUTH`.
+
+For a homelab deploy off the published image instead of building from
+source, swap the `build: .` in the compose file for:
+
+```yaml
+  app:
+    image: ghcr.io/ctrl-research/getbud:latest
+```
+
+## Releases
+
+Every merge to `main` bumps the patch version, tags the repo, and pushes
+the image to GHCR as `X.Y.Z` and `latest` (`[minor]` / `[major]` in the PR
+title bump higher). Curated GitHub Releases with generated notes — and an
+optional extra image tag such as `stable` — are cut by running the Release
+workflow manually from the Actions tab. The running version is logged at
+startup.
 
 ## Reverse proxy
 
