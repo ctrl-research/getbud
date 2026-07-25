@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Docs — getbud</title>
+  <meta name="description" content="getbud documentation: quick start, configuration reference, sign-in setup, accounts and balances, CSV import, contribution room, reports, and backups." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="favicon.svg" width="28" height="28" alt="" /> getbud</a>
+      <nav class="top">
+        <a href="./#features">Features</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/ctrl-research/getbud">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap docs">
+    <aside>
+      <h4>Setup</h4>
+      <a href="#quick-start">Quick start</a>
+      <a href="#configuration">Configuration</a>
+      <a href="#sign-in">Sign-in options</a>
+      <h4>Using getbud</h4>
+      <a href="#accounts">Accounts &amp; balances</a>
+      <a href="#transactions">Transactions &amp; transfers</a>
+      <a href="#csv-import">CSV import</a>
+      <a href="#contribution-room">Contribution room</a>
+      <a href="#reports">Reports</a>
+      <h4>Operations</h4>
+      <a href="#backups">Data &amp; backups</a>
+      <a href="#development">Development</a>
+    </aside>
+
+    <main>
+      <h1>Documentation</h1>
+      <p>Everything you need to run and use getbud. For the code and issues, see
+        <a href="https://github.com/ctrl-research/getbud">GitHub</a> — architecture,
+        configuration, data-model, and deployment references also live in the repo as markdown
+        under <a href="https://github.com/ctrl-research/getbud/tree/main/docs">docs/</a>.</p>
+
+      <h2 id="quick-start">Quick start</h2>
+      <p>The repo ships a compose file with the app and Postgres:</p>
+      <pre><code>git clone https://github.com/ctrl-research/getbud
+cd getbud
+cp .env.example .env      # set POSTGRES_PASSWORD at minimum
+docker compose up -d</code></pre>
+      <p>The app listens on <code>:8081</code> (the container listens on 8080; compose maps it
+        to host 8081). Database migrations run automatically at startup. The <strong>first
+        account to sign in becomes admin</strong> and every new user starts with a sensible set
+        of income and expense categories.</p>
+      <p>The compose file enables local email/password auth for a quick first look — create a
+        user with:</p>
+      <pre><code>docker compose exec app getbud seed    # dev@getbud.local / getbud-dev</code></pre>
+      <p>For a real deployment, configure <a href="#sign-in">Google or OIDC sign-in</a> and set
+        <code>GETBUD_LOCAL_AUTH=false</code>.</p>
+
+      <h2 id="configuration">Configuration</h2>
+      <p>Everything is configured with <code>GETBUD_*</code> environment variables
+        (compose reads them from <code>.env</code>):</p>
+      <table>
+        <tr><th>Variable</th><th>Default</th><th>What it does</th></tr>
+        <tr><td><code>GETBUD_DATABASE_URL</code></td><td>—</td><td><strong>Required.</strong> Postgres connection string.</td></tr>
+        <tr><td><code>GETBUD_ADDR</code></td><td><code>:8080</code></td><td>Listen address.</td></tr>
+        <tr><td><code>GETBUD_BASE_URL</code></td><td><code>http://localhost:8080</code></td><td>Public URL of the instance. OAuth redirect URIs derive from it; session cookies are Secure when it's https. No trailing slash.</td></tr>
+        <tr><td><code>GETBUD_GOOGLE_CLIENT_ID</code> / <code>GETBUD_GOOGLE_CLIENT_SECRET</code></td><td>—</td><td>Enable Sign in with Google (set both together).</td></tr>
+        <tr><td><code>GETBUD_OIDC_ISSUER_URL</code> + <code>_CLIENT_ID</code> / <code>_CLIENT_SECRET</code></td><td>—</td><td>Generic OIDC provider (Authentik, Keycloak, …); redirect URI <code>$BASE_URL/auth/oidc/callback</code>. <code>GETBUD_OIDC_NAME</code> labels the login button.</td></tr>
+        <tr><td><code>GETBUD_LOCAL_AUTH</code></td><td><code>false</code></td><td>Email/password accounts, intended for dev/testing. Create one with the <code>seed</code> subcommand.</td></tr>
+        <tr><td><code>GETBUD_ALLOWED_EMAILS</code></td><td>—</td><td>Comma-separated emails allowed to sign up after the first user. Empty = closed instance.</td></tr>
+      </table>
+
+      <h2 id="sign-in">Sign-in options</h2>
+      <h3>Google</h3>
+      <ol>
+        <li>In the <a href="https://console.cloud.google.com/apis/credentials">Google Cloud Console</a>,
+          create a project and configure the OAuth consent screen (External; Testing mode is
+          fine — add the accounts that will sign in as test users).</li>
+        <li>Create an <strong>OAuth client ID</strong> of type <em>Web application</em> with the
+          authorized redirect URI <code>$GETBUD_BASE_URL/auth/google/callback</code>.</li>
+        <li>Set <code>GETBUD_GOOGLE_CLIENT_ID</code> and <code>GETBUD_GOOGLE_CLIENT_SECRET</code>
+          and restart. The login page shows the Google button automatically.</li>
+      </ol>
+      <h3>Generic OIDC</h3>
+      <p>Any OIDC provider with discovery works (Authentik, Keycloak, Pocket ID, …). Set the
+        issuer URL exactly as the provider publishes it (trailing slash included), the client
+        id/secret, and the redirect URI <code>$GETBUD_BASE_URL/auth/oidc/callback</code>.</p>
+      <p>In both cases: sign in yourself first — <strong>the first account becomes admin</strong>
+        and bypasses the allowlist. After that, only <code>GETBUD_ALLOWED_EMAILS</code> addresses
+        can register; existing accounts always keep signing in. Each user's data is completely
+        private.</p>
+
+      <h2 id="accounts">Accounts &amp; balances</h2>
+      <p>Accounts come in two flavours:</p>
+      <ul>
+        <li><strong>Cash accounts</strong> (chequing, savings, credit card, other) derive their
+          balance from an opening balance plus the sum of their transactions.</li>
+        <li><strong>Investment accounts</strong> (RRSP, TFSA, FHSA, non-registered) are tracked
+          with <strong>balance snapshots</strong> — point-in-time balances you record from your
+          statement. The latest snapshot is the account's balance, and the history drives the
+          net-worth chart. No individual holdings or tickers, by design.</li>
+      </ul>
+      <p>Accounts with transactions can't be deleted — archive them instead and they drop out
+        of pickers while their history stays intact.</p>
+
+      <h2 id="transactions">Transactions &amp; transfers</h2>
+      <p>Amounts are signed: money in is positive, money out is negative (the UI's
+        income/expense toggle handles the sign for you). Every transaction can carry a payee,
+        notes, and a category; categories are flat, per-user, and manageable in Settings
+        (rename, recolor, archive, or delete with reassignment).</p>
+      <p><strong>Transfers</strong> move money between two of your own accounts — paying a
+        credit card, funding a TFSA. Both legs are created together, deleted together, and
+        excluded from every income/expense report. A transfer into a registered account is
+        what drives <a href="#contribution-room">contribution tracking</a>.</p>
+
+      <h2 id="csv-import">CSV import</h2>
+      <p>Import → pick the account → drop the export from your bank. getbud sniffs the
+        delimiter (comma, semicolon, tab), strips BOMs, detects the header row, and guesses the
+        column mapping — date (with format detection, including day/month disambiguation),
+        payee, and amount as either one signed column or split debit/credit columns. Credit-card
+        exports that report purchases as positive numbers have a one-click
+        <em>"positive means expense"</em> toggle.</p>
+      <p>The review step shows every row before anything is saved:</p>
+      <ul>
+        <li><strong>new</strong> — will be imported;</li>
+        <li><strong>already imported</strong> — matches an existing transaction (same date,
+          amount, and normalized payee) and starts unchecked; re-check it if it's a legitimate
+          repeat purchase;</li>
+        <li><strong>repeated in file</strong> — a duplicate within the file itself;</li>
+        <li><strong>unparseable</strong> — rows that fail to parse are listed and skipped.</li>
+      </ul>
+      <p>Duplicate detection is a soft warning, never a silent drop. Each import is recorded as
+        a batch — the history at the bottom of the Import page reverts any batch atomically,
+        and the mapping you used is remembered per account for next time.</p>
+
+      <h2 id="contribution-room">Contribution room</h2>
+      <p>The Contributions page tracks RRSP, TFSA, and FHSA room per calendar year.
+        <strong>Room is yours to enter</strong> — TFSA room is cumulative and personal, RRSP
+        room comes from your notice of assessment — so getbud shows the published annual limits
+        only as placeholder hints (check CRA MyAccount for your real number).</p>
+      <p><strong>Contributions and withdrawals are derived from transactions</strong> in your
+        registered accounts: deposits count as contributions, withdrawals as withdrawals, and
+        transfers between two accounts of the <em>same</em> type (TFSA → TFSA) are correctly
+        ignored — moving money within a type isn't new room used. Cross-type transfers
+        (chequing → TFSA) count.</p>
+      <p>Known simplification: contributions attribute to the calendar year they occur in; the
+        RRSP first-60-days rule is not modelled.</p>
+
+      <h2 id="reports">Reports</h2>
+      <ul>
+        <li><strong>Cash flow (Sankey)</strong> — income categories pool into Income and fan
+          out into expense categories, with the unspent remainder flowing to Savings (or a
+          "From savings" inflow in an over-spent period). Small categories fold into "Other" to
+          keep the diagram readable.</li>
+        <li><strong>Trends</strong> — monthly stacked bars by category, toggleable between
+          expenses and income.</li>
+        <li><strong>Net worth</strong> — month-end totals by account type, carrying each
+          account's latest snapshot forward.</li>
+        <li><strong>Categories</strong> — a donut plus a full table with per-category share.</li>
+      </ul>
+      <p>All reports honour the shared date-range picker (this month, last month, year to
+        date, last 12 months, or custom) and always exclude transfers. Reports assume a single
+        currency; mixed-currency data is not converted.</p>
+
+      <h2 id="backups">Data &amp; backups</h2>
+      <p>All state lives in the <strong>Postgres database</strong> — accounts, transactions,
+        snapshots, room, users, sessions. A <code>pg_dump</code> is a complete backup.
+        Migrations run automatically on upgrade, so restoring into a newer version just
+        works.</p>
+
+      <h2 id="development">Development</h2>
+      <p>Requirements: Go and Node as pinned in <code>.tool-versions</code> (asdf/mise), and
+        Docker for Postgres.</p>
+      <pre><code>make db        # postgres via docker compose (host port 5433)
+make seed      # create the local dev user
+make run       # Go API on :8081 with local auth
+make web       # Vite dev server on :5173, proxying /api and /auth</code></pre>
+      <p>Open <code>http://localhost:5173</code> and sign in with
+        <code>dev@getbud.local</code> / <code>getbud-dev</code>. After editing SQL under
+        <code>internal/store/queries/</code>, run <code>make generate</code>;
+        <code>make test-db</code> runs the Postgres-backed store tests. See
+        <a href="https://github.com/ctrl-research/getbud/blob/main/docs/ARCHITECTURE.md">ARCHITECTURE.md</a>
+        for the full tour.</p>
+    </main>
+  </div>
+
+  <footer class="site">
+    <div class="wrap">
+      getbud · MIT licensed ·
+      <a href="https://github.com/ctrl-research/getbud">github.com/ctrl-research/getbud</a>
+    </div>
+  </footer>
+</body>
+</html>

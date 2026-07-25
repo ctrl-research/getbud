@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>getbud — self-hosted budgeting for Canadians</title>
+  <meta name="description" content="getbud is a self-hosted budgeting app for Canadians: income and expense tracking, RRSP/TFSA/FHSA accounts with contribution room, CSV import from your bank, and a Sankey cash-flow diagram — on your own server." />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site">
+    <div class="wrap">
+      <a class="brand" href="./"><img src="favicon.svg" width="28" height="28" alt="" /> getbud</a>
+      <nav class="top">
+        <a href="#features">Features</a>
+        <a href="#quickstart">Quick start</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/ctrl-research/getbud">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero wrap">
+      <img class="logo" src="favicon.svg" width="96" height="96" alt="getbud logo" />
+      <h1><span class="w-earn">Earn;</span> <span class="w-spend">Spend;</span> <span class="w-grow">Grow;</span></h1>
+      <p class="tag">
+        getbud is a <strong>self-hosted</strong> budgeting app for Canadians.
+        Your income, your spending, your TFSA room — on your own server, in your own database.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="docs.html#quick-start">Get started</a>
+        <a class="btn ghost" href="https://github.com/ctrl-research/getbud">View on GitHub</a>
+      </div>
+      <pre class="pull"><code>git clone https://github.com/ctrl-research/getbud &amp;&amp; cd getbud
+cp .env.example .env &amp;&amp; docker compose up -d</code></pre>
+    </div>
+
+    <section class="block" id="features">
+      <div class="wrap">
+        <h2>The whole picture of your money</h2>
+        <p class="lead">
+          One app for tracking what comes in, what goes out, and what's growing —
+          built around how Canadians actually save.
+        </p>
+        <div class="grid">
+          <div class="card">
+            <div class="icon">🏦</div>
+            <h3>Canadian accounts, first-class</h3>
+            <p>Chequing, savings, and credit cards next to RRSP, TFSA, FHSA, and non-registered
+              investment accounts. Cash balances derive from transactions; investments from
+              balance snapshots.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🍁</div>
+            <h3>Contribution room</h3>
+            <p>Enter your CRA room per year and getbud derives contributions and withdrawals
+              from your transactions — moving money between two TFSAs correctly doesn't count
+              as new room used.</p>
+          </div>
+          <div class="card">
+            <div class="icon">📥</div>
+            <h3>CSV import that just works</h3>
+            <p>Drop in any bank or credit-card export. Delimiter, date format, and amount
+              columns are auto-detected; duplicates are flagged softly; any import reverts
+              with one click.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🌊</div>
+            <h3>Sankey cash flow</h3>
+            <p>See income streams pool and fan out into spending categories — with whatever's
+              left flowing to savings. The single most honest picture of a month.</p>
+          </div>
+          <div class="card">
+            <div class="icon">📈</div>
+            <h3>Trends &amp; breakdowns</h3>
+            <p>Monthly stacked bars by category, income vs. expense views, and a category
+              donut with a full table. Colors follow your categories everywhere.</p>
+          </div>
+          <div class="card">
+            <div class="icon">💰</div>
+            <h3>Net worth over time</h3>
+            <p>Point-in-time balance snapshots roll up into a month-by-month net-worth chart,
+              stacked by account type, carrying each account's latest balance forward.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🔁</div>
+            <h3>Transfers done right</h3>
+            <p>Moving money between your own accounts is never income or an expense. Both
+              legs are linked, created and deleted together, and excluded from every report.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🧑‍🤝‍🧑</div>
+            <h3>Multi-user, fully private</h3>
+            <p>Invite family via an email allowlist. Every account, transaction, and report is
+              scoped to its owner — nobody sees anyone else's money.</p>
+          </div>
+          <div class="card">
+            <div class="icon">🔐</div>
+            <h3>Self-hosted &amp; yours</h3>
+            <p>A single Go binary with the UI embedded, Postgres behind it, and sign-in via
+              Google or any OIDC provider (Authentik, Keycloak, …). All amounts stored as
+              integer cents.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="quickstart">
+      <div class="wrap">
+        <h2>Up and running in a minute</h2>
+        <p class="lead">Clone the repo, set a password, and go. Migrations run automatically;
+          the first account to sign in becomes admin.</p>
+        <pre><code>git clone https://github.com/ctrl-research/getbud
+cd getbud
+cp .env.example .env        # set POSTGRES_PASSWORD at minimum
+docker compose up -d        # app on :8081</code></pre>
+        <p style="margin-top:1rem"><a href="docs.html">Read the docs →</a></p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site">
+    <div class="wrap">
+      getbud · MIT licensed ·
+      <a href="https://github.com/ctrl-research/getbud">github.com/ctrl-research/getbud</a>
+    </div>
+  </footer>
+</body>
+</html>

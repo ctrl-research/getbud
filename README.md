@@ -45,6 +45,17 @@ docker compose exec app getbud seed   # dev@getbud.local / getbud-dev
 For real deployments set `GETBUD_BASE_URL` and the Google or OIDC variables
 in `.env` — see `.env.example` for the full contract.
 
+## Documentation
+
+The project site with a user guide lives at
+[ctrl-research.github.io/getbud](https://ctrl-research.github.io/getbud/)
+(published from `site/`). Reference docs live in [`docs/`](docs/):
+
+- [ARCHITECTURE.md](docs/ARCHITECTURE.md) — how the pieces fit together
+- [CONFIGURATION.md](docs/CONFIGURATION.md) — every `GETBUD_*` variable and sign-in setup
+- [DATA_MODEL.md](docs/DATA_MODEL.md) — schema and domain decisions
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) — compose, reverse proxy, backups, upgrades
+
 ## Development
 
 Requirements: Go and Node as pinned in `.tool-versions` (asdf/mise), Docker.
